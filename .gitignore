@@ -83,6 +83,3 @@ dmypy.json
 .pyre/
 .pytype/
 cython_debug/
-
-app/storage/*
-!app/storage/__init__.py
