@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  web-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - shared_test_data:/kanastra-file-processor/app/storage/uploads
+    ports:
+      - "8001:8000"
+    depends_on:
+      - redis-test
+      - mongo-test
+    env_file:
+      - .env.test
+    networks:
+      - kanastra_test_network
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: pytest --maxfail=1 --disable-warnings -v
+    volumes:
+      - .:/app
+      - shared_test_data:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - mongo-test
+      - redis-test
+      - celery-invoice_queue-test
+      - celery-email-queue-test
+      - celery-csv-queue-test
+    env_file:
+      - .env.test
+    networks:
+      - kanastra_test_network
+
+  mongo-test:
+    image: mongo
+    ports:
+      - "27018:27017"
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+        MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+        MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    volumes:
+      - mongo_test_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - kanastra_test_network
+
+  mongo-express-test:
+    image: mongo-express:latest
+    ports:
+      - "8082:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_BASICAUTH_USERNAME: "1234"
+      ME_CONFIG_BASICAUTH_PASSWORD: "4321"
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo-test:27017/
+    depends_on:
+      - mongo-test
+    networks:
+      - kanastra_test_network
+
+  celery-invoice_queue-test:
+    build: .
+    command: celery -A app.core.celery_app worker -Q invoice_queue --loglevel=FATAL &>/dev/null
+    volumes:
+      - ./app/storage/logs:/kanastra-file-processor/app/storage/logs
+      - shared_test_data:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - redis-test
+    env_file:
+      - .env.test
+    networks:
+      - kanastra_test_network
+
+  celery-email-queue-test:
+    build: .
+    command: celery -A app.core.celery_app worker -Q email_queue --loglevel=FATAL &>/dev/null
+    volumes:
+      - ./app/storage/uploads:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - redis-test
+    env_file:
+      - .env.test
+    networks:
+      - kanastra_test_network
+
+  celery-csv-queue-test:
+    build: .
+    command: celery -A app.core.celery_app worker -Q csv_queue --loglevel=FATAL &>/dev/null
+    volumes:
+      - shared_test_data:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - redis-test
+    env_file:
+      - .env.test
+    networks:
+      - kanastra_test_network
+
+  flower-test:
+    build: .
+    command: celery -A app.core.celery_app flower --port=5555
+    volumes:
+      - shared_test_data:/kanastra-file-processor/app/storage/uploads
+    ports:
+      - "5556:5555"
+    depends_on:
+      - redis-test
+    env_file:
+      - .env.test
+    networks:
+      - kanastra_test_network
+
+  redis-test:
+    image: redis:7.4.1-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+    networks:
+      - kanastra_test_network
+
+volumes:
+  redis_test_data:
+    driver: local
+  mongo_test_data:
+    driver: local
+  shared_test_data:
+    driver: local
+
+networks:
+  kanastra_test_network:
+    driver: bridge

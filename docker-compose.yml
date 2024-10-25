@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./app/storage/logs:/kanastra-file-processor/app/storage/logs
+      - ./app/storage/uploads:/kanastra-file-processor/app/storage/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - mongo
+    env_file:
+      - .env
+    networks:
+      - kanastra_network
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+        MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+        MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - kanastra_network
+
+  mongo-express:
+    image: mongo-express:latest
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_BASICAUTH_USERNAME: "1234"
+      ME_CONFIG_BASICAUTH_PASSWORD: "4321"
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/
+    depends_on:
+      - mongo
+    networks:
+      - kanastra_network
+
+  celery_invoice_queue:
+    build: .
+    command: celery -A app.core.celery_app worker -Q invoice_queue --loglevel=FATAL &>/dev/null
+    volumes:
+      - ./app/storage/logs:/kanastra-file-processor/app/storage/logs
+      - ./app/storage/uploads:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - kanastra_network
+
+  celery_email_queue:
+    build: .
+    command: celery -A app.core.celery_app worker -Q email_queue --loglevel=FATAL &>/dev/null
+    volumes:
+      - ./app/storage/logs:/kanastra-file-processor/app/storage/logs
+      - ./app/storage/uploads:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - kanastra_network
+
+  celery_csv_queue:
+    build: .
+    command: celery -A app.core.celery_app worker -Q csv_queue --loglevel=FATAL &>/dev/null
+    volumes:
+      - ./app/storage/logs:/kanastra-file-processor/app/storage/logs
+      - ./app/storage/uploads:/kanastra-file-processor/app/storage/uploads
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - kanastra_network
+
+  flower:
+    build: .
+    command: celery -A app.core.celery_app flower --port=5555
+    volumes:
+      - ./app/storage/logs:/kanastra-file-processor/app/storage/logs
+      - ./app/storage/uploads:/kanastra-file-processor/app/storage/uploads
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    networks:
+      - kanastra_network
+
+  redis:
+    image: redis:7.4.1-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kanastra_network
+
+volumes:
+  redis_data:
+    driver: local
+  mongo_data:
+    driver: local
+  shared_data:
+    driver: local
+
+networks:
+  kanastra_network:
+    driver: bridge

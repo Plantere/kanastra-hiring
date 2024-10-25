@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /kanastra-file-processor
+
+RUN pip install --no-cache-dir poetry
+
+RUN poetry config virtualenvs.create false
+
+COPY pyproject.toml poetry.lock ./
+
+RUN poetry install --no-root --no-dev
+
+COPY . .
+
+CMD ["pytest", "--maxfail=1", "--disable-warnings", "-v"]
