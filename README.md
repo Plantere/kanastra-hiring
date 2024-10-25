@@ -10,8 +10,6 @@
     - [3. Visualizando o Banco de Dados](#3-visualizando-o-banco-de-dados)
     - [4. Monitoramento de Tarefas](#4-monitoramento-de-tarefas)
     - [5. Executando os Testes](#5-executando-os-testes)
-  - [Rotas da API](#rotas-da-api)
-    - [**POST** `/api/v1/billing/upload`](#post-apiv1billingupload)
   - [Sobre o Projeto](#sobre-o-projeto)
   - [Tecnologias Utilizadas](#tecnologias-utilizadas)
   - [Arquitetura do Sistema](#arquitetura-do-sistema)
@@ -33,8 +31,15 @@ docker-compose -f docker-compose.yml up -d --build
 ### 2. Acessando a API e Documentação
 
 - **Documentação da API (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Rota para Envio do Arquivo CSV**: `POST http://localhost:8000/api/v1/billing/upload`
-
+- **Rota para Envio do Arquivo CSV**:  `/api/v1/billing/upload`
+  **Descrição**: Recebe um arquivo CSV contendo débitos e inicia o processamento.
+  **Formato do CSV**:
+  ```
+  name,governmentId,email,debtAmount,debtDueDate,debtId
+  John Doe,11111111111,johndoe@kanastra.com.br,1000000.00,2022-10-12,1adb6ccf-ff16-467f-bea7-5f05d494280f
+  ```
+- **Requisitos**: A requisição deve ser enviada como um formulário `multipart/form-data` contendo:
+  - `file`: O arquivo CSV a ser processado.
 ### 3. Visualizando o Banco de Dados
 
 Você pode visualizar o conteúdo do banco de dados através da interface MongoExpress:
@@ -44,6 +49,17 @@ Você pode visualizar o conteúdo do banco de dados através da interface MongoE
   - **Username**: `1234`
   - **Password**: `4321`
 
+Para acessar detalhes específicos sobre as tarefas no sistema, você pode visitar a URL:
+
+**URL**: [http://localhost:8081/db/kanastra_billing/](http://localhost:8081/db/kanastra_billing/)
+
+Campos Importantes:
+
+    pending: Quantidade de boletos que ainda precisam ser enviados por e-mail.
+    sended: Quantidade de boletos que já foram enviados com sucesso.
+    duplicated: Quantidade de débitos duplicados encontrados no arquivo CSV.
+    invoice_generated: Quantidade de boletos gerados pelo sistema.
+    
 ### 4. Monitoramento de Tarefas
 
 Para visualizar as tarefas sendo processadas pelo Celery, acesse:
@@ -56,28 +72,6 @@ Para executar os testes unitários e de integração, utilize o seguinte comando
 
 ```bash
 docker-compose -f docker-compose.test.yml up --build test
-```
-
-## Rotas da API
-
-### **POST** `/api/v1/billing/upload`
-- **Descrição**: Recebe um arquivo CSV contendo débitos e inicia o processamento.
-- **Formato do CSV**:
-  ```
-  name,governmentId,email,debtAmount,debtDueDate,debtId
-  John Doe,11111111111,johndoe@kanastra.com.br,1000000.00,2022-10-12,1adb6ccf-ff16-467f-bea7-5f05d494280f
-  ```
-- **Requisitos**: A requisição deve ser enviada como um formulário `multipart/form-data` contendo:
-  - `file`: O arquivo CSV a ser processado.
-  
-- **Exemplo de Resposta**:
-
-```json
-{
-	"status": "CSV file uploaded successfully for processing",
-	"filename": "input.csv",
-	"task_id": "1cc51a74-5601-4d93-b29f-5c6138e4e41e"
-}
 ```
 
 ---
