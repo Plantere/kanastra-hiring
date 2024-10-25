@@ -38,8 +38,8 @@ docker-compose -f docker-compose.yml up -d --build
   name,governmentId,email,debtAmount,debtDueDate,debtId
   John Doe,11111111111,johndoe@kanastra.com.br,1000000.00,2022-10-12,1adb6ccf-ff16-467f-bea7-5f05d494280f
   ```
-- **Requisitos**: A requisição deve ser enviada como um formulário `multipart/form-data` contendo:
-  - `file`: O arquivo CSV a ser processado.
+  **Requisitos**: A requisição deve ser enviada como um formulário `multipart/form-data` contendo:
+    - `file`: O arquivo CSV a ser processado.
 ### 3. Visualizando o Banco de Dados
 
 Você pode visualizar o conteúdo do banco de dados através da interface MongoExpress:
