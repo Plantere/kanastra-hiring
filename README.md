@@ -14,7 +14,6 @@
   - [Tecnologias Utilizadas](#tecnologias-utilizadas)
   - [Arquitetura do Sistema](#arquitetura-do-sistema)
   - [Configuração do Ambiente](#configuração-do-ambiente)
-  - [Banco de Dados](#banco-de-dados)
 
 ---
 
@@ -49,17 +48,24 @@ Você pode visualizar o conteúdo do banco de dados através da interface MongoE
   - **Username**: `1234`
   - **Password**: `4321`
 
-Para acessar detalhes específicos sobre as tarefas no sistema, você pode visitar a URL:
+Para acessar detalhes específicos sobre as tarefas importadas no sistema, você pode visitar a URL **(Acessivel depois da primeira importação)**:
 
-**URL**: [http://localhost:8081/db/kanastra_billing/](http://localhost:8081/db/kanastra_billing/)
+**URL**: [http://localhost:8081/db/kanastra_billing/tasks](http://localhost:8081/db/kanastra_billing/tasks)
 
-Campos Importantes:
+Campos Importantes sobre a coleção/tabela `tasks`:
 
     pending: Quantidade de boletos que ainda precisam ser enviados por e-mail.
     sended: Quantidade de boletos que já foram enviados com sucesso.
     duplicated: Quantidade de débitos duplicados encontrados no arquivo CSV.
     invoice_generated: Quantidade de boletos gerados pelo sistema.
-    
+
+O banco de dados foi estruturado com três coleções principais:
+
+1. **`debts`**: Responsável por armazenar todos os débitos que estão no arquivo CSV de entrada.
+2. **`logs`**: Contém registros detalhados do processamento, como duplicidade de débitos, e-mails enviados, boletos gerados, e erros encontrados.
+3. **`tasks`**: Armazena informações gerais sobre as tarefas executadas pelo sistema, incluindo quantidade de boletos gerados, enviados, pendentes e outros dados relacionados à importação.
+
+
 ### 4. Monitoramento de Tarefas
 
 Para visualizar as tarefas sendo processadas pelo Celery, acesse:
@@ -120,10 +126,3 @@ CELERY_RESULT_BACKEND="redis://redis:6379/0"
 LOG_LEVEL=FATAL
 ```
 
-## Banco de Dados
-
-O banco de dados foi estruturado com três coleções principais:
-
-1. **`debts`**: Responsável por armazenar todos os débitos que estão no arquivo CSV de entrada.
-2. **`logs`**: Contém registros detalhados do processamento, como duplicidade de débitos, e-mails enviados, boletos gerados, e erros encontrados.
-3. **`tasks`**: Armazena informações gerais sobre as tarefas executadas pelo sistema, incluindo quantidade de boletos gerados, enviados, pendentes e outros dados relacionados à importação.
